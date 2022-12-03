@@ -3,32 +3,38 @@ import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { AuthDto } from './dto/auth.dto';
-import { refreshDto } from './dto/refresh.dto';
+import { Tokens } from './types';
 
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) {}
 
-    @Post('/local/singup')
-    sinupLocal(@Body() dto: AuthDto){
-        return this.authService.sinupLocal(dto)
+    @Post('/local/signup')
+    @HttpCode(HttpStatus.CREATED)
+    sinupLocal(@Body() dto: AuthDto): Promise<Tokens>{
+        return this.authService.signupLocal(dto) 
     }
 
-    @Post('/local/singin')
-    sininLocal(){
-        return this.authService.sininLocal()
+    @Post('/local/signin')
+    @HttpCode(HttpStatus.OK)
+    sininLocal(@Body() dto: AuthDto){
+        return this.authService.signinLocal(dto)
     }
 
-    @Post('/logout')
-    logout(){
-        return this.authService.logout()
+    @UseGuards(AuthGuard('jwt'))
+    @Post('logout')
+    @HttpCode(HttpStatus.OK)
+    logout(@Req() req: Request){
+        const user = req.user
+        return this.authService.logout(user['sub'])
     }
 
     @UseGuards(AuthGuard('jwt-refresh'))
-    @Post('/refresh')
+    @Post('refresh')
     @HttpCode(HttpStatus.OK)
     refreshTokens(@Req() req: Request){
         const user = req.user;
-        return this.authService.refreshTokens(user['id'], user['refresh_token'])
+        // console.log(user)
+        return this.authService.refreshTokens(user['sub'], user['refreshToken'])
     }
 }

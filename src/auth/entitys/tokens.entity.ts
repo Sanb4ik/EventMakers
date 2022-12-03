@@ -1,10 +1,11 @@
-import { Column, Entity, PrimaryColumn } from "typeorm";
+import { Users } from "src/users/entities/user.entity";
+import { BeforeInsert, Column, Entity, JoinColumn, OneToOne, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
-export class Refresh_tokens {
-    @PrimaryColumn()
+export class RefreshTokens {
+    @PrimaryGeneratedColumn()
     id: number;
 
     @Column()
-    refresh_token: string;
+    refreshToken: string;
 }

@@ -1,5 +1,5 @@
 
-export class refreshDto{
+export class RefreshDto{
 
     id:string;
 

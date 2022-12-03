@@ -1,15 +1,18 @@
-import { Refresh_tokens } from "src/auth/entitys/tokens.entity";
-import { Column, Entity, JoinColumn, OneToOne, PrimaryColumn } from "typeorm";
+import { RefreshTokens } from "src/auth/entitys/tokens.entity";
+import { BeforeInsert, Column, Entity, JoinColumn, OneToOne, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
-export class User {
-    @PrimaryColumn()
+export class Users {
+    @PrimaryGeneratedColumn()
     id: number;
 
     @Column()
-    name: string;
+    email: string;
 
-    @OneToOne(() => Refresh_tokens)
-    @JoinColumn()
-    refresh_token: string;
+    @Column()
+    password: string;
+    
+    @Column({ nullable: true })
+    token: string;
+
 }
