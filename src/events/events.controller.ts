@@ -2,7 +2,6 @@ import {Controller, Get, Post, Body,  Param, UseGuards, Req} from '@nestjs/commo
 import { Request } from 'express';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
-import { UpdateEventDto } from './dto/update-event.dto';
 import {AuthGuard} from "@nestjs/passport";
 
 @Controller('events')
