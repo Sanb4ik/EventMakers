@@ -17,8 +17,8 @@ export class AuthController {
 
     @Post('/local/signin')
     @HttpCode(HttpStatus.OK)
-    sininLocal(@Body() dto: AuthDto){
-        return this.authService.signinLocal(dto)
+    sinInLocal(@Body() dto: AuthDto){
+        return this.authService.signInLocal(dto)
     }
 
     @UseGuards(AuthGuard('jwt'))

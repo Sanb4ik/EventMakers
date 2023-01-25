@@ -6,8 +6,10 @@ import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { configuration } from '../config/configuration';
+import { EventsModule } from './events/events.module';
 
-console.log(process.env.NODE_ENV)
+
+console.log(process.env.NODE_ENV);
 
 @Module({
   imports: [
@@ -30,7 +32,8 @@ console.log(process.env.NODE_ENV)
       
     }),
     AuthModule,
-    UsersModule
+    UsersModule,
+    EventsModule
     ],
   controllers: [AppController],
   providers: [AppService],

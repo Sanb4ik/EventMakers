@@ -1,5 +1,13 @@
 import { RefreshTokens } from "src/auth/entitys/tokens.entity";
-import { BeforeInsert, Column, Entity, JoinColumn, OneToOne, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import {
+    Column,
+    Entity,
+    JoinColumn,
+    OneToMany,
+    OneToOne,
+    PrimaryGeneratedColumn
+} from "typeorm";
+import {Events} from "../../events/entities/events.entity";
 
 @Entity()
 export class Users {
@@ -11,8 +19,14 @@ export class Users {
 
     @Column()
     password: string;
-    
-    @Column({ nullable: true })
-    token: string;
+
+
+    @OneToOne(() => RefreshTokens,{ nullable: true })
+    @JoinColumn()
+    token: RefreshTokens
+
+    @OneToMany(() => Events, (Events) => Events.user)
+    events: Events[]
+
 
 }

@@ -1,14 +1,14 @@
 import { ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthDto } from './dto/auth.dto';
-import * as bcrypt from 'bcrypt';
-import { Tokens } from './types/tokens.type';
+import * as bcrypt from 'bcryptjs';
+import { Tokens } from './types';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
-import { JwtPayload } from './types/jwtPayload.type';
-import { RefreshTokens } from './entitys/tokens.entity';
+import { JwtPayload } from './types';
 import { ConfigService } from '@nestjs/config';
+import {RefreshTokens} from "./entitys/tokens.entity";
 
 
 @Injectable()
@@ -16,14 +16,9 @@ export class AuthService {
     constructor(
         private jwtService: JwtService,
         @InjectRepository(Users) private usersRepository: Repository<Users>,
+        @InjectRepository(RefreshTokens) private tokensRepository: Repository<RefreshTokens>,
         @Inject(ConfigService) private config: ConfigService
     ) {}
-
-    async findOneByEmail(email: string){
-      const user = await this.usersRepository.findOneBy({email:email})
-
-      return user;
-    }
 
     hashData(data: string){
         return bcrypt.hash(data, 3)
@@ -31,28 +26,42 @@ export class AuthService {
 
     async signupLocal(dto: AuthDto){ // to registration
       const HashPassword = await this.hashData(dto.password)
-      const DoesExist = await this.findOneByEmail(dto.email)
 
-      if (DoesExist){
+      const user = await this.usersRepository.findOneBy({
+              email:dto.email
+      })
+        console.log(user)
+
+      if (user){
         throw new UnauthorizedException('user already exists')
       }
+
+      const refreshToken = await this.tokensRepository.save({refreshToken: ""})
 
       const newUser = await this.usersRepository.save({
           email: dto.email,
           password: HashPassword,
+          token: refreshToken
         }
       );
 
         const tokens = await this.getTokens(newUser.id, newUser.email)
-        const HashToken = await this.hashData(tokens.refresh_token);
-        newUser.token = HashToken
-        await this.usersRepository.save(newUser);
+        const rt_hash = await this.hashData(tokens.refresh_token);
+        await this.tokensRepository.update(refreshToken, {refreshToken: rt_hash});
         
         return tokens;
      }
 
-    async signinLocal(dto: AuthDto){ // to come in
-      const user = await this.findOneByEmail(dto.email)
+    async signInLocal(dto: AuthDto){ // to come in
+      const user = await this.usersRepository.findOne({
+          relations:{
+              token: true
+          },
+          where:{
+              email:dto.email
+          }
+      })
+
       if(!user)
         throw new UnauthorizedException('user does not exists')
       
@@ -62,20 +71,26 @@ export class AuthService {
         throw new UnauthorizedException('invalid password')
       
       const tokens = await this.getTokens(user.id, user.email)
-      const HashToken = await this.hashData(tokens.refresh_token);
-      user.token = HashToken
-      await this.usersRepository.save(user);
+      const rt_Hash = await this.hashData(tokens.refresh_token)
+      await this.tokensRepository.update(user.token, {refreshToken: rt_Hash});
       return tokens
     }
 
     async logout(userId: number){
-      const user = await this.usersRepository.findOneBy({id: userId})
+
+      const user = await this.usersRepository.findOne({
+          relations:{
+              token:true,
+          },
+          where:{
+              id:userId
+          }
+      })
+
       console.log(user.email, user.id)
+
       if (user && user.token) {
-        console.log(user)
-        user.token = null
-        console.log(user)
-        await this.usersRepository.save(user);
+        await this.tokensRepository.update(user.token,{refreshToken: ""});
       }
 
       return user
@@ -83,11 +98,20 @@ export class AuthService {
 
     async refreshTokens(userId: number, rt: string){
       console.log(userId)
-      const user = await this.usersRepository.findOneBy({id: userId});
+      const user = await this.usersRepository.findOne({
+          relations:{
+              token:true,
+          },
+          where:{
+              id:userId
+          }
+      })
+
+        console.log(user)
 
       if (!user || !user.token) throw new ForbiddenException('Access Denied. User not found');
     
-      const rtMatches = await bcrypt.compare(rt,user.token);
+      const rtMatches = await bcrypt.compare(rt,user.token.refreshToken);
       // console.log(rt)
       // console.log(user.token, user.id)
       // console.log(rtMatches)
@@ -95,9 +119,8 @@ export class AuthService {
       if (!rtMatches) throw new ForbiddenException('Access Denied');
     
       const tokens = await this.getTokens(user.id, user.email);
-      const HashToken = await this.hashData(tokens.refresh_token);
-      user.token = HashToken
-      await this.usersRepository.save(user);
+      const rt_hash = await this.hashData(tokens.refresh_token);
+      await this.tokensRepository.update(user.token, {refreshToken: rt_hash});
     
       return tokens;
   }
@@ -109,10 +132,6 @@ export class AuthService {
           email: email,
         };
 
-      // console.log(this.config.get<string>("jwt_access.secret"))
-      // console.log(this.config.get<string>("jwt_access.expiresIn"))
-      // console.log(this.config.get<string>("jwt_refresh.secret"))
-      // console.log(this.config.get<string>("jwt_refresh.expiresIn"))
 
       const [at, rt] = await Promise.all([
         this.jwtService.signAsync(jwtPayload, {
