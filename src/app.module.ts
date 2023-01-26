@@ -7,13 +7,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { configuration } from '../config/configuration';
 import { EventsModule } from './events/events.module';
+import {BullModule} from "@nestjs/bull";
 
 
 console.log(process.env.NODE_ENV);
 
 @Module({
   imports: [
-    
+    BullModule.forRoot({
+      redis: {
+        host: 'localhost',
+        port: 6379,
+      },
+    }),
     ConfigModule.forRoot({
       envFilePath: `${process.cwd()}/config/env/${process.env.NODE_ENV}.env`,
       load: [configuration],

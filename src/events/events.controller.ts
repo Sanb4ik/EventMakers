@@ -1,12 +1,22 @@
-import {Controller, Get, Post, Body,  Param, UseGuards, Req} from '@nestjs/common';
+import {Controller, Get, Post, Body, Param, UseGuards, Req, Query} from '@nestjs/common';
 import { Request } from 'express';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import {AuthGuard} from "@nestjs/passport";
+import {SubOnEventProducerService} from "./subOnEvent.producer.service";
 
 @Controller('events')
 export class EventsController {
-  constructor(private eventsService: EventsService) {}
+  constructor(
+      private eventsService: EventsService,
+      private subOnEventProducerService:SubOnEventProducerService
+  ) {}
+
+  @Get('test')
+  getInvokeMsg(@Query('msg') msg:string){
+    this.subOnEventProducerService.sendMessage(msg);
+    return msg;
+  }
 
   @UseGuards(AuthGuard('jwt'))
   @Post('create')
