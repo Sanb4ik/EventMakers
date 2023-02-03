@@ -3,4 +3,5 @@ export class CreateEventDto {
     description: string;
     dateOnly: string;
     timeOnly: string;
+    subscribers: number;
 }

@@ -7,7 +7,7 @@ import {
     OneToOne,
     PrimaryGeneratedColumn
 } from "typeorm";
-import {Events} from "../../events/entities/events.entity";
+import {EventEntity} from "../../events/entities/event.entity";
 
 @Entity()
 export class Users {
@@ -25,8 +25,6 @@ export class Users {
     @JoinColumn()
     token: RefreshTokens
 
-    @OneToMany(() => Events, (Events) => Events.user)
-    events: Events[]
-
-
+    @OneToMany(() => EventEntity, (event) => event.user)
+    events: EventEntity[]
 }

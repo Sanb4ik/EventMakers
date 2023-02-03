@@ -1,22 +1,14 @@
-import {Controller, Get, Post, Body, Param, UseGuards, Req, Query} from '@nestjs/common';
+import {Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import {AuthGuard} from "@nestjs/passport";
-import {SubOnEventProducerService} from "./subOnEvent.producer.service";
 
 @Controller('events')
 export class EventsController {
   constructor(
       private eventsService: EventsService,
-      private subOnEventProducerService:SubOnEventProducerService
   ) {}
-
-  @Get('test')
-  getInvokeMsg(@Query('msg') msg:string){
-    this.subOnEventProducerService.sendMessage(msg);
-    return msg;
-  }
 
   @UseGuards(AuthGuard('jwt'))
   @Post('create')
@@ -35,15 +27,15 @@ export class EventsController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('find/:id')
-  findOne(@Param('id') id: number, @Req() req: Request) {
+  findOne(@Param('id') eventId: number, @Req() req: Request) {
     const user = req.user
-    return this.eventsService.findOne(id, user['sub']);
+    return this.eventsService.findOne(eventId, user['sub']);
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Get('remove/:id')
-  remove(@Param('id') id: number, @Req() req: Request) {
+  remove(@Param('id') eventId: number, @Req() req: Request) {
     const user = req.user
-    return this.eventsService.remove(id, user['sub']);
+    return this.eventsService.removeOne(eventId, user['sub']);
   }
 }

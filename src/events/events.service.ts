@@ -1,84 +1,80 @@
 import { Injectable } from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
-import {InjectRepository} from "@nestjs/typeorm";
-import {Repository} from "typeorm";
-import {Events} from "./entities/events.entity";
-import {OneEvent} from "./entities/oneEvent.entity";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
 import {Users} from "../users/entities/user.entity";
+import {EventEntity} from "./entities/event.entity";
+import {EventSubscribers} from "./entities/eventSubscribers.entity";
+
 
 @Injectable()
 export class EventsService {
 
   constructor(
-  @InjectRepository(Events) private eventsRepository: Repository<Events>,
-  @InjectRepository(OneEvent) private oneEventRepository: Repository<OneEvent>,
+  @InjectRepository(EventEntity) private eventRepository: Repository<EventEntity>,
+  @InjectRepository(EventSubscribers)private subscribersRepository: Repository<EventSubscribers>,
   @InjectRepository(Users) private usersRepository: Repository<Users>
   ) {}
-  async create(createEventDto: CreateEventDto, userId) {
-    let date = new Date();
-    createEventDto.dateOnly = date.getFullYear()+ "-" + (date.getMonth()+1) + "-" + date.getDate();
-    createEventDto.timeOnly = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-    console.log(createEventDto);
-    const event =  await this.oneEventRepository.save(createEventDto)
-    const user = await this.usersRepository.save({id: userId})
-    await this.eventsRepository.save({event, user});
+  async create(createEventDto: CreateEventDto, userId: number){
 
+    const user = await this.usersRepository.findOneBy({id: userId});
 
-    return event;
+    const existingEvent = await this.eventRepository.findOneBy({
+      title: createEventDto.title,
+      description: createEventDto.description,
+      dateOnly: createEventDto.dateOnly,
+      timeOnly: createEventDto.timeOnly,
+      user: user
+    });
+
+    if(!existingEvent){
+      const event = await this.eventRepository.save({
+        ...createEventDto,
+        user: user,
+        followers: []
+      });
+
+      await this.subscribersRepository.save({
+        usersId: userId,
+        eventId: event.id
+      });
+
+      return event;
+    }
+
+    return 'this event already exists';
   }
 
   async findAll(userId: number) {
-    console.log(userId);
-    const user_events =  await this.eventsRepository.find({
-      relations:{
-        event:true,
-      },
+
+    const user = await this.usersRepository.findOneBy({id: userId})
+    const user_events =  await this.eventRepository.find({
       where: {
-        user:{
-          id: userId
-        }
-      }
+          user: user
+         }
     });
 
     return user_events;
   }
 
-  async remove(id: number, userId: number) {
-    const user_events =  await this.eventsRepository.findOne({
-      relations:{
-        event:true,
-      },
+  async removeOne(eventId: number, userId: number) {
+    const user = await this.usersRepository.findOneBy({id: userId})
+    const user_events =  await this.eventRepository.findOne({
       where: {
-        user: {
-          id: userId
-        },
-        event: {
-          id: id
-        }
+        id: eventId,
+        user: user
       }
     });
+
     if (user_events){
-      await this.eventsRepository.delete(user_events);
-      await this.oneEventRepository.delete(user_events.event);
+      await this.eventRepository.delete(user_events);
     }
 
     return user_events;
   }
 
-  async findOne(id: number, userId: number) {
-    const user_events =  await this.eventsRepository.findOne({
-      relations:{
-        event:true,
-      },
-      where: {
-        user: {
-          id: userId
-        },
-        event: {
-          id: id
-        }
-      }
-    });
-    return user_events;
+  async findOne(eventId: number, userId: number) {
+    const user = await this.usersRepository.findOneBy({id: userId})
+    return  await this.eventRepository.findOneBy({id: eventId, user: user});
   }
 }
