@@ -22,15 +22,15 @@ console.log(process.env.NODE_ENV);
 
     BullModule.forRoot({
       redis: {
-        host: 'localhost',
-        port: 6666,
+        host: `${process.env.REDIS_HOST}`,
+        port: Number(`${process.env.REDIS_PORT}`),
       },
     }),
 
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
+      host: `${process.env.POSTGRES_HOST}`,
+      port: Number(`${process.env.POSTGRES_PORT}`),
       username: 'postgres',
       password: 'master',
       database: 'event-makers',

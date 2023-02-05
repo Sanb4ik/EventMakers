@@ -1,5 +1,4 @@
 import {Process, Processor} from "@nestjs/bull";
-import {Job} from "bull";
 import {SendgridService} from "./sendEmail.service";
 
 @Processor('events-queue')
@@ -9,16 +8,23 @@ export class SubOnEventConsumerService {
     }
 
     @Process('subscribe-job')
-    async readOperationJob(job:Job<unknown>){
+    async readOperationJob(job: any){
 
-        // const email = JSON.stringify(job.data); edit email
-        //
-        // await this.mailService.send({
-        //     subject: 'EventEntity Subscribed now!!!!!!!!',
-        //     to: email,
-        //     from:"alexandrkuznetsov.dev@gmail.com",
-        //     text: `${JSON.stringify(job.data)}`,
-        // });
+        const email = job.data.email;
+        const title = job.data.title;
+        const date = job.data.date;
+        const time = job.data.time;
+
+        await this.mailService.send({
+            subject: `Don't forget about ${title} 🧑🏼‍💻`,
+            to: email,
+            from:"alexandrkuznetsov.dev@gmail.com",
+            html: `Hello <a>${email}</a>, you have subscribed to
+                   <h1>${title}</h1>
+                   <hr>
+                   Event will be on ${date} at ${time}
+                   on the <a>DevEvent❤️</a>`
+        });
         console.log(job.data);
     }
 }

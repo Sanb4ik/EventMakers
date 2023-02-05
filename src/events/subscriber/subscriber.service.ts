@@ -29,12 +29,36 @@ export class SubscriberService {
 
             await this.subscribersRepository.save({
                 usersId: userId,
-                noEntityId: eventId
+                eventId: eventId
             });
 
             await this.subOnEventProducerService.sendSubscribeMessage(eventId, toEmail);
             return `you have subscribed to an event ${event.title}`;
         }
         return `you already subscribed to an event or event doesn't exist`;
+    }
+
+    async unfollow(eventId: number, userId: number){
+        const event = await this.eventRepository.findOne({
+            relations:{
+                user:true
+            },
+            where:{
+                id: eventId,
+            }
+        });
+
+        if( event.user.id != userId && event) {
+            event.subscribers -= 1;
+            await this.eventRepository.save(event);
+
+            await this.subscribersRepository.delete({
+                usersId: userId,
+                eventId: eventId
+            });
+            await this.subOnEventProducerService.deleteSubscription(eventId);
+            return `you have unsubscribed from an event ${event.title}`;
+        }
+        return `you cant unfollow an event because you are creator`;
     }
 }

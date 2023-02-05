@@ -1,10 +1,13 @@
-import { Entity, PrimaryColumn } from "typeorm"
+import {Column, Entity, PrimaryColumn} from "typeorm"
 
-@Entity({name: 'uuuu'})
+@Entity()
 export class EventSubscribers {
     @PrimaryColumn()
     usersId: number
 
     @PrimaryColumn()
     eventId: number
+
+    @Column({nullable: true})
+    jobId: string
 }

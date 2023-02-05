@@ -17,4 +17,12 @@ export class SubscriberController {
         const userId = user['sub'];
         return  this.subscriberService.subscribeToEvent(eventId, userId, toEmail);
     }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get('unfollow/:id')
+    async unfollow(@Req() req: Request, @Param('id') eventId: number,){
+        const user = req.user;
+        const userId = user['sub'];
+        return this.subscriberService.unfollow(eventId, userId);
+    }
 }
