@@ -1,10 +1,14 @@
 import {Process, Processor} from "@nestjs/bull";
 import {SendgridService} from "./sendEmail.service";
+import {SubscriberService} from "./subscriber.service";
 
 @Processor('events-queue')
 export class SubOnEventConsumerService {
 
-    constructor(private mailService: SendgridService) {
+    constructor(
+        private mailService: SendgridService,
+        private subscribersService: SubscriberService
+    ) {
     }
 
     @Process('subscribe-job')
@@ -15,6 +19,7 @@ export class SubOnEventConsumerService {
         const date = job.data.date;
         const time = job.data.time;
 
+        await this.subscribersService.eventCompleted(job.data.eventId, job.data.userId);
         await this.mailService.send({
             subject: `Don't forget about ${title} 🧑🏼‍💻`,
             to: email,
@@ -25,6 +30,5 @@ export class SubOnEventConsumerService {
                    Event will be on ${date} at ${time}
                    on the <a>DevEvent❤️</a>`
         });
-        console.log(job.data);
     }
 }

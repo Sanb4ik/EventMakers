@@ -32,7 +32,7 @@ export class SubscriberService {
                 eventId: eventId
             });
 
-            await this.subOnEventProducerService.sendSubscribeMessage(eventId, toEmail);
+            await this.subOnEventProducerService.sendSubscribeMessage(userId, eventId, toEmail);
             return `you have subscribed to an event ${event.title}`;
         }
         return `you already subscribed to an event or event doesn't exist`;
@@ -52,13 +52,44 @@ export class SubscriberService {
             event.subscribers -= 1;
             await this.eventRepository.save(event);
 
+            const subscribeOnEvent = await this.subscribersRepository.findOneBy({
+                usersId: userId,
+                eventId: eventId
+            })
+
+            const bullJobId = subscribeOnEvent.jobId
+
             await this.subscribersRepository.delete({
                 usersId: userId,
                 eventId: eventId
             });
-            await this.subOnEventProducerService.deleteSubscription(eventId);
+
+            await this.subOnEventProducerService.deleteSubscription(bullJobId);
             return `you have unsubscribed from an event ${event.title}`;
         }
         return `you cant unfollow an event because you are creator`;
     }
+
+    async eventCompleted(eventId: number, userId: number){
+
+        const event = await this.eventRepository.findOne({
+            relations:{
+                user:true
+            },
+            where:{
+                id: eventId,
+            }
+        });
+
+        if( event) {
+            const subscribeOnEvent = await this.subscribersRepository.findOneBy({
+                usersId: userId,
+                eventId: eventId
+            })
+
+            const bullJobId = subscribeOnEvent.jobId
+            await this.subOnEventProducerService.deleteJobAfterCompleted(bullJobId);
+        }
+    }
+
 }
