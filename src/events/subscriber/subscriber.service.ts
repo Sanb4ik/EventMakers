@@ -1,0 +1,95 @@
+import { Injectable } from '@nestjs/common';
+import {InjectRepository} from "@nestjs/typeorm";
+import {EventSubscribers} from "../entities/eventSubscribers.entity";
+import {Repository} from "typeorm";
+import {EventEntity} from "../entities/event.entity";
+import {SubOnEventProducerService} from "./subOnEvent.producer.service";
+
+@Injectable()
+export class SubscriberService {
+
+    constructor(
+        @InjectRepository(EventSubscribers)private subscribersRepository: Repository<EventSubscribers>,
+        @InjectRepository(EventEntity) private eventRepository: Repository<EventEntity>,
+        private subOnEventProducerService:SubOnEventProducerService,
+    ){}
+    async subscribeToEvent(eventId: number, userId: number, toEmail: string) {
+
+        const eventCreator = await this.subscribersRepository.findOneBy({usersId: userId, eventId: eventId});
+
+        const event = await this.eventRepository.findOne({
+            where:{
+                id: eventId,
+            }
+        });
+
+        if(!eventCreator && event){
+            event.subscribers +=1;
+            await this.eventRepository.save(event);
+
+            await this.subscribersRepository.save({
+                usersId: userId,
+                eventId: eventId
+            });
+
+            await this.subOnEventProducerService.sendSubscribeMessage(userId, eventId, toEmail);
+            return `you have subscribed to an event ${event.title}`;
+        }
+        return `you already subscribed to an event or event doesn't exist`;
+    }
+
+    async unfollow(eventId: number, userId: number){
+        const event = await this.eventRepository.findOne({
+            relations:{
+                user:true
+            },
+            where:{
+                id: eventId,
+            }
+        });
+
+        if( event.user.id != userId && event) {
+            event.subscribers -= 1;
+            await this.eventRepository.save(event);
+
+            const subscribeOnEvent = await this.subscribersRepository.findOneBy({
+                usersId: userId,
+                eventId: eventId
+            })
+
+            const bullJobId = subscribeOnEvent.jobId
+
+            await this.subscribersRepository.delete({
+                usersId: userId,
+                eventId: eventId
+            });
+
+            await this.subOnEventProducerService.deleteSubscription(bullJobId);
+            return `you have unsubscribed from an event ${event.title}`;
+        }
+        return `you cant unfollow an event because you are creator`;
+    }
+
+    async eventCompleted(eventId: number, userId: number){
+
+        const event = await this.eventRepository.findOne({
+            relations:{
+                user:true
+            },
+            where:{
+                id: eventId,
+            }
+        });
+
+        if( event) {
+            const subscribeOnEvent = await this.subscribersRepository.findOneBy({
+                usersId: userId,
+                eventId: eventId
+            })
+
+            const bullJobId = subscribeOnEvent.jobId
+            await this.subOnEventProducerService.deleteJobAfterCompleted(bullJobId);
+        }
+    }
+
+}
